@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.project.blog.Makeblog.reply.repository.ReplyMapper">
+
+    <!--  댓글 입력  -->
+    <insert id="save">
+        INSERT INTO tbl_reply
+        (reply_no, serial_no, reply_text, reply_writer)
+        VALUES
+        (seq_reply.nextval, #{serialNo}, #{replyText}, #{replyWriter})
+    </insert>
+
+    <!-- 댓글 수정   -->
+    <update id="update">
+        UPDATE tbl_reply
+        SET reply_text = #{replyText}
+        WHERE reply_no = #{replyNo}
+    </update>
+
+    <!--  댓글 삭제  -->
+    <delete id="delete">
+        DELETE FROM tbl_reply
+        WHERE reply_no = #{replyNo}
+    </delete>
+
+    <resultMap id="replyMap" type="com.project.blog.Makeblog.reply.domain.Reply">
+        <result property="replyNo" column="reply_no"/>
+        <result property="serialNo" column="serial_no"/>
+        <result property="replyText" column="reply_text"/>
+        <result property="replyWriter" column="reply_writer"/>
+        <result property="replyDate" column="reply_date"/>
+    </resultMap>
+
+    <!--  댓글 목록 조회  -->
+    <!--  /*+INDEX(tbl_reply pk_reply) 인덱스 정렬 오라클 힌트   -->
+    <select id="getList" resultMap="replyMap">
+        <![CDATA[
+
+        SELECT
+            reply_no, serial_no,
+            reply_text, reply_writer, reply_date
+        FROM (
+        SELECT /*+INDEX(tbl_reply pk_reply) */
+            rownum rn, reply_no, seiral_no,
+            reply_text, reply_writer, reply_date
+        FROM tbl_reply
+        WHERE serial_no = #{serialNo}
+            AND rownum <= #{page.pageNum} * #{page.amount}
+        )
+        WHERE rn > (#{page.pageNum} - 1) * #{page.amount}
+
+        ]]>
+    </select>
+
+    <!--  댓글 1개 조회  -->
+    <select id="read" resultMap="replyMap">
+        SELECT * FROM tbl_reply
+        WHERE reply_no = #{replyNo}
+    </select>
+
+    <!--  총 댓글 수 조회  -->
+    <!--resultType = "리턴 될 타입"-->
+    <select id="getCount" resultType="int">
+        SELECT COUNT(*)
+        FROM tbl_reply
+        WHERE serial_no = #{serialNo}
+    </select>
+
+</mapper>

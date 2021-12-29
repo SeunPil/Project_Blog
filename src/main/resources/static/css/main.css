@@ -1,0 +1,22 @@
+/* list.jsp */
+.list-container {
+    width: 80%;
+    margin: 50px auto 30px;
+}
+.list-container h2 {
+    text-align: center;
+}
+.list-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.list-container table td {
+    border: 1px solid #ccc;
+}
+
+
+/* list hover */
+.selectArticle:hover {
+    background: #ccc;
+    
+}

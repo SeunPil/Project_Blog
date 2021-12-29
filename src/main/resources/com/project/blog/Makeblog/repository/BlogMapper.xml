@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.project.blog.Makeblog.repository.BlogMapper">
+
+    <resultMap id="boardMap" type="com.project.blog.Makeblog.domain.Blog">
+        <result property="serialNo" column="serial_no"/>
+        <result property="boardNo" column="board_no"/>
+        <result property="boardTitle" column="board_title"/>
+        <result property="boardContent" column="board_content"/>
+        <result property="boardViewCnt" column="board_view_cnt"/>
+        <result property="boardDate" column="board_date"/>
+        <result property="categoryNo" column="category_no"/>
+    </resultMap>
+
+
+    <!-- #################### 카테고리별 조회수가 5이상인 인기글 조회 ####################   -->
+    <select id="getMovieBestArticle" resultMap="boardMap">
+        SELECT * FROM board
+        WHERE board_view_cnt >= 5 AND category_no = 1
+        ORDER BY board_view_cnt DESC
+    </select>
+
+    <select id="getRestaurantBestArticle" resultMap="boardMap">
+        SELECT * FROM board
+        WHERE board_view_cnt >= 5 AND category_no = 2
+        ORDER BY board_view_cnt DESC
+    </select>
+
+    <select id="getDailyBestArticle" resultMap="boardMap">
+        SELECT * FROM board
+        WHERE board_view_cnt >= 5 AND category_no = 3
+        ORDER BY board_view_cnt DESC
+    </select>
+
+    <!-- #################### 카테고리별 최신글 띄우기 ####################   -->
+    <select id="getMovieRecentArticle" resultMap="boardMap">
+        SELECT * FROM board
+        WHERE category_no = 1
+        ORDER BY serial_no DESC
+    </select>
+
+    <select id="getRestaurantRecentArticle" resultMap="boardMap">
+        SELECT * FROM board
+        WHERE category_no = 2
+        ORDER BY serial_no DESC
+    </select>
+
+    <select id="getDailyRecentArticle" resultMap="boardMap">
+        SELECT * FROM board
+        WHERE category_no = 3
+        ORDER BY serial_no DESC
+    </select>
+
+
+    <!--  #################### 카테고리별 게시판 조회 #################### -->
+    <select id="getMovieArticles" resultMap="boardMap">
+        <![CDATA[
+        SELECT
+        serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+        FROM
+        (
+        SELECT  /*+INDEX_DESC(board sys_c007043)*/
+        rownum rn, serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+        FROM board
+        WHERE rownum <= #{pageNum} * #{amount}
+        AND category_no = 1
+        )
+        WHERE rn > (#{pageNum} - 1) * #{amount}
+        ]]>
+
+        <!--        학원에서 했던 getSearchArticles 코드에서 if문 빼고 넣어도 오류가 났었는데
+                    제 생각에는 CDATA가 두 번 들어가서일수도 있을 것 같아요..
+                    오라클 힌트 쓰는 이유가 AND를 쓸 수 없어서? 라고 들었던 것 같은데 자세한 걸 몰라서 설명이 어렵지만..
+                    자세히 보니까 63, 64번은 인덱스 구문의 조건이고, 하단의 67번 WHERE 는 전체 셀렉트 구문 조건인거같아요
+                    카테고리 조건도 처음에 전체 조건문에 넣어봤는데 게시글이 하나도 안나오길래 인덱스에 넣어보니 되네요..
+                    선필씨가 알려주지 않았으면 계속 삽질하고 있었을거에요...-->
+        <!--        <![CDATA[-->
+        <!--            SELECT-->
+        <!--            board_no, writer, title, content, reg_date, view_cnt-->
+        <!--            FROM-->
+        <!--            (SELECT  /*+INDEX_DESC(board pk_board)*/-->
+        <!--            rownum rn, board_no, title, writer, content, reg_date, view_cnt-->
+        <!--            FROM board-->
+        <!--            WHERE 1=1-->
+        <!--            ]]>-->
+        <!--        <![CDATA[-->
+        <!--                AND rownum <= #{pageNum} * #{amount})-->
+        <!--            WHERE rn > (#{pageNum} - 1) * #{amount}-->
+        <!--        ]]>-->
+    </select>
+
+    <select id="getRestaurantArticles" resultMap="boardMap">
+        <![CDATA[
+        SELECT
+        serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+        FROM
+        (SELECT  /*+INDEX_DESC(board sys_c007043)*/
+        rownum rn, serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+        FROM board
+        WHERE rownum <= #{pageNum} * #{amount}
+        AND category_no = 2 )
+        WHERE rn > (#{pageNum} - 1) * #{amount}
+        ]]>
+    </select>
+
+    <select id="getDailyArticles" resultMap="boardMap">
+        <![CDATA[
+        SELECT
+        serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+        FROM
+        (SELECT  /*+INDEX_DESC(board sys_c007043)*/
+        rownum rn, serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+        FROM board
+        WHERE rownum <= #{pageNum} * #{amount}
+        AND category_no = 3 )
+        WHERE rn > (#{pageNum} - 1) * #{amount}
+        ]]>
+    </select>
+
+    <!--  전체 게시글(카테고리) 조회하기  -->
+    <select id="getAllArticles" resultMap="boardMap">
+        SELECT * FROM board
+        ORDER BY serial_no DESC
+    </select>
+
+    <!--  게시글 리스트? 조회?  -->
+    <!-- CDATA로 감싸는 이유는 마크업 내부에서 특수문자를 문자로 인식시키기 위함.
+            이 안에 태그는 다 인식 안된다. 문자로 인식 되는 특징 있음.
+             /*+INDEX_DESC는 오라클힌트를 사용하기 위함. 오라클 힌트를 사용하지 않으면 삼중쿼리가 되기 때문
+             PK설정을 CONSTRAINT(?)로 하면 인덱스명 설정이 가능하지만 그냥 pk만 입력하면
+             임의로 지정된 인덱스명을 사용(추후에 변경 가능)
+             ************ 그래서 우리는 sys_c007043 사용 ************
+             테이블명 (공백) 인덱스명 -->
+
+
+    <!--    검색기능 추가-->
+    <!--  임시로 영화만 리스트 만들기 해보겠음  AND category_no = 1는 직접 추가했다.-->
+    <select id="getSearchArticles" resultMap="boardMap">
+
+        <![CDATA[
+            SELECT
+                serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+            FROM
+                (
+                SELECT  /*+INDEX_DESC(board sys_c007043)*/
+                rownum rn, serial_no, board_no, board_title, board_content, board_view_cnt, board_date, category_no
+                FROM board
+                WHERE rownum <= #{pageNum} * #{amount}
+                    ]]>
+        <if test="type == 'title'">
+            AND board_title LIKE '%'|| #{keyword} || '%'
+        </if>
+        <if test="type == 'content'">
+            AND board_content LIKE '%'|| #{keyword} || '%'
+        </if>
+        <if test="type == 'titleContent'">
+            AND board_title LIKE '%'|| #{keyword} || '%'
+            OR board_content LIKE '%'|| #{keyword} || '%'
+        </if>
+        <![CDATA[
+                AND category_no = 1
+                )
+            WHERE rn > (#{pageNum} - 1) * #{amount}
+        ]]>
+
+    </select>
+
+    <!-- 총 게시물 수 조회 및 카테고리별 게시물 수 조회 -->
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM board
+        WHERE 1=1
+        <if test="type == 'title'">
+            AND title LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'content'">
+            AND content LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'writer'">
+            AND writer LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'titleContent'">
+            AND title LIKE '%' || #{keyword} || '%'
+            OR content LIKE '%' || #{keyword} || '%'
+        </if>
+    </select>
+
+    <select id="getMovieTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM board
+        WHERE category_no = 1
+        <if test="type == 'title'">
+            AND board_title LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'content'">
+            AND board_content LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'titleContent'">
+            AND board_title LIKE '%' || #{keyword} || '%'
+            OR board_content LIKE '%' || #{keyword} || '%'
+        </if>
+    </select>
+
+    <select id="getRestaurantTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM board
+        WHERE category_no = 2
+        <if test="type == 'title'">
+            AND board_title LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'content'">
+            AND board_content LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'writer'">
+            AND writer LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'titleContent'">
+            AND board_title LIKE '%' || #{keyword} || '%'
+            OR board_content LIKE '%' || #{keyword} || '%'
+        </if>
+    </select>
+
+    <select id="getDailyTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM board
+        WHERE category_no = 3
+        <if test="type == 'title'">
+            AND board_title LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'content'">
+            AND board_content LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'writer'">
+            AND writer LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="type == 'titleContent'">
+            AND board_title LIKE '%' || #{keyword} || '%'
+            OR board_content LIKE '%' || #{keyword} || '%'
+        </if>
+    </select>
+
+    <!--  해당 게시물 상세 조회  -->
+    <select id="getContent" resultMap="boardMap">
+        SELECT * FROM board
+        WHERE serial_no = #{serialNo}
+    </select>
+
+    <insert id="insertArticle">
+        INSERT INTO board
+        (serial_no, board_no, board_title, board_content, category_no)
+        VALUES
+        (seq_board.nextval, #{boardNo}, #{boardTitle}, #{boardContent}, #{categoryNo})
+    </insert>
+
+    <!--   #############################  board_no 게시글 등록시 1씩 상승해야한다. 추후에 수정 필요   -->
+    <update id="upBoardNo">
+        update board
+        set board_no = board_no ++
+        where serial_no = #{serialNo}
+    </update>
+
+    <delete id="deleteArticle">
+        DELETE FROM board
+        WHERE serial_no = #{serialNo}
+        AND category_no = #{categoryNo}
+    </delete>
+
+    <update id="modifyArticle">
+        UPDATE board
+        SET
+        board_title = #{boardTitle}, board_content = #{boardContent}, serial_no = #{serialNo}
+        WHERE serial_no = #{serialNo}
+    </update>
+
+    <!--  조회수 상승 SQL  -->
+    <update id="upViewCount">
+        update board
+        set board_view_cnt = board_view_cnt + 1
+        where serial_no = #{serialNo}
+    </update>
+
+
+</mapper>
